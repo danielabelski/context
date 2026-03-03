@@ -249,7 +249,7 @@ Given a definition + target version:
 Simple HTTP client:
 - Check existence: `GET <base-url>/packages/<registry>/<name>/<version>` → 200 (exists) or 404 (new)
 - Upload: `POST <base-url>/packages/<registry>/<name>/<version>` with `.db` file body, `Authorization: Bearer <key>` header
-- Base URL defaults to `https://context.neuledge.com`, configurable via env var `REGISTRY_SERVER_URL`
+- Base URL defaults to `https://api.context.neuledge.com`, configurable via env var `REGISTRY_SERVER_URL`
 
 ### 1.7 Registry CLI (`cli.ts`)
 
@@ -316,7 +316,7 @@ Configuration stored in `~/.context/config.json`:
   "servers": [
     {
       "name": "neuledge",
-      "url": "https://context.neuledge.com",
+      "url": "https://api.context.neuledge.com",
       "default": true
     }
   ]
@@ -347,7 +347,7 @@ Currently `get_docs` is registered once at startup with a fixed library enum. Af
 
 ### 2.4 Server Specification
 
-Document the expected server API so others can implement compatible servers. The base URL is configurable (default: `https://context.neuledge.com`). Endpoints are relative to the base URL:
+Document the expected server API so others can implement compatible servers. The base URL is configurable (default: `https://api.context.neuledge.com`). Endpoints are relative to the base URL:
 - `GET /search?registry=<r>&name=<n>&version=<v>` — Search packages
 - `GET /packages/<registry>/<name>/<version>` — Check existence / get metadata
 - `GET /packages/<registry>/<name>/<version>/download` — Download .db file
@@ -380,14 +380,14 @@ These are handled separately, not in this repository:
 | 1.9 | Tests for parser, version discovery | done |
 | 1.10 | **Validate**: test-build a real package end-to-end | done |
 | **Stage 2: Server & publish pipeline** | | |
-| 2.1 | Server is deployed and accessible | pending |
-| 2.2 | Publish client (`publish.ts`) | pending |
-| 2.3 | CLI `publish` / `publish-all` commands | pending |
-| 2.4 | GitHub Actions cron workflow (`registry-update.yml`) | pending |
+| 2.1 | Server is deployed and accessible | done |
+| 2.2 | Publish client (`publish.ts`) | done |
+| 2.3 | CLI `publish` / `publish-all` commands | done |
+| 2.4 | GitHub Actions cron workflow (`registry-update.yml`) | done |
 | 2.5 | Validate: build + upload + populate initial packages | pending |
 | **Stage 3: MCP download tools** | | |
-| 3.1 | Server config management (`~/.context/config.json`) | pending |
-| 3.2 | MCP `search_packages` tool | pending |
-| 3.3 | MCP `download_package` tool | pending |
-| 3.4 | Dynamic `get_docs` tool update after download | pending |
+| 3.1 | Server config management (`~/.context/config.json`) | done |
+| 3.2 | MCP `search_packages` tool | done |
+| 3.3 | MCP `download_package` tool | done |
+| 3.4 | Dynamic `get_docs` tool update after download | done |
 | 3.5 | Server API specification document | pending |
