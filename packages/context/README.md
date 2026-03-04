@@ -461,6 +461,57 @@ context query 'nextjs@16.0' 'middleware authentication'
 
 ---
 
+## :question: FAQ
+
+### Can I use Context with non-JavaScript frameworks like Spring Boot, Django, or Rails?
+
+**Yes!** Context is language-agnostic. It natively supports Markdown (`.md`, `.mdx`), AsciiDoc (`.adoc`), and reStructuredText (`.rst`) — no conversion needed.
+
+```bash
+# Python - FastAPI (Markdown)
+context add https://github.com/fastapi/fastapi --path docs/en/docs
+
+# Python - Django (reStructuredText)
+context add https://github.com/django/django --path docs
+
+# Java - Spring Boot (AsciiDoc)
+context add https://github.com/spring-projects/spring-boot --path spring-boot-project/spring-boot-docs/src/docs
+
+# Rust - The Rust Book
+context add https://github.com/rust-lang/book --path src
+```
+
+Point Context at the docs folder with `--path` and it handles the rest.
+
+### Can I contribute package definitions for new ecosystems?
+
+Yes! The `registry/` directory has YAML definitions organized by package manager:
+
+- **`registry/npm/`** — JavaScript/TypeScript (Next.js, React, Tailwind, etc.)
+- **`registry/pip/`** — Python (FastAPI, Flask, Django, Pydantic)
+- **`registry/maven/`** — Java (Spring Boot, JUnit, Micrometer)
+
+To add a package, create a YAML file:
+
+```yaml
+# registry/pip/my-library.yaml
+name: my-library
+description: "Short description of the library"
+repository: https://github.com/org/my-library
+
+versions:
+  - min_version: "2.0.0"
+    source:
+      type: git
+      url: https://github.com/org/my-library
+      docs_path: docs
+    tag_pattern: "v{version}"
+```
+
+Version discovery is supported for npm, PyPI, and Maven Central. See existing definitions for examples.
+
+---
+
 ## :wrench: Development
 
 ```bash
