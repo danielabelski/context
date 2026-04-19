@@ -288,7 +288,7 @@ describe("fetchWebPage", () => {
     }) as typeof fetch;
   }
 
-  it("returns content and isHtml=false for markdown", async () => {
+  it("returns markdown content unchanged", async () => {
     const fetchImpl = makeFetch({
       "https://example.com/post": {
         body: "# Hello\n\nWorld",
@@ -296,34 +296,60 @@ describe("fetchWebPage", () => {
       },
     });
     const page = await fetchWebPage("https://example.com/post", fetchImpl);
-    expect(page).not.toBeNull();
-    expect(page?.content).toBe("# Hello\n\nWorld");
-    expect(page?.isHtml).toBe(false);
+    expect(page.ok).toBe(true);
+    if (!page.ok) return;
+    expect(page.content).toBe("# Hello\n\nWorld");
+    expect(page.title).toBeUndefined();
   });
 
-  it("returns isHtml=true for HTML responses", async () => {
+  it("extracts HTML responses into clean markdown via defuddle", async () => {
+    const html = `<!DOCTYPE html>
+<html>
+<head><title>Real Article</title></head>
+<body>
+<nav><a href="/">Home</a><a href="/subscribe">Subscribe</a></nav>
+<aside class="subscribe-cta">Subscribe now for $5/month!</aside>
+<article>
+<h1>Real Article</h1>
+<p>This is the main article content that should survive extraction.</p>
+<p>A second paragraph to give defuddle enough signal.</p>
+</article>
+<aside class="recommendations">More from this author</aside>
+<footer>Copyright 2026</footer>
+</body>
+</html>`;
     const fetchImpl = makeFetch({
       "https://example.com/page": {
-        body: "<html><body><h1>Hi</h1></body></html>",
+        body: html,
         contentType: "text/html; charset=utf-8",
       },
     });
     const page = await fetchWebPage("https://example.com/page", fetchImpl);
-    expect(page?.isHtml).toBe(true);
+    expect(page.ok).toBe(true);
+    if (!page.ok) return;
+    expect(page.content).toContain("main article content");
+    expect(page.content).not.toContain("Subscribe now");
+    expect(page.content).not.toContain("More from this author");
+    expect(page.title).toBe("Real Article");
   });
 
   it("sniffs HTML when content-type is missing", async () => {
+    const html = `<!DOCTYPE html><html><head><title>T</title></head><body>
+<article><h1>T</h1><p>Some readable body text of reasonable length so defuddle has signal to work with.</p></article>
+</body></html>`;
     const fetchImpl = makeFetch({
       "https://example.com/page": {
-        body: "<html><body>Hi</body></html>",
+        body: html,
         contentType: "",
       },
     });
     const page = await fetchWebPage("https://example.com/page", fetchImpl);
-    expect(page?.isHtml).toBe(true);
+    expect(page.ok).toBe(true);
+    if (!page.ok) return;
+    expect(page.content).toContain("readable body text");
   });
 
-  it("returns null for PDF content", async () => {
+  it("reports unsupported content type for PDFs", async () => {
     const fetchImpl = makeFetch({
       "https://example.com/paper.pdf": {
         body: "%PDF-1.4...",
@@ -331,26 +357,32 @@ describe("fetchWebPage", () => {
       },
     });
     const page = await fetchWebPage("https://example.com/paper.pdf", fetchImpl);
-    expect(page).toBeNull();
+    expect(page.ok).toBe(false);
+    if (page.ok) return;
+    expect(page.reason).toMatch(/unsupported content type.*pdf/);
   });
 
-  it("returns null for failed requests", async () => {
+  it("reports HTTP status for failed requests", async () => {
     const fetchImpl = makeFetch({
       "https://example.com/bad": { body: "error", status: 500 },
     });
     const page = await fetchWebPage("https://example.com/bad", fetchImpl);
-    expect(page).toBeNull();
+    expect(page.ok).toBe(false);
+    if (page.ok) return;
+    expect(page.reason).toMatch(/HTTP 500/);
   });
 
-  it("returns null for empty responses", async () => {
+  it("reports empty body reason", async () => {
     const fetchImpl = makeFetch({
       "https://example.com/empty": { body: "   " },
     });
     const page = await fetchWebPage("https://example.com/empty", fetchImpl);
-    expect(page).toBeNull();
+    expect(page.ok).toBe(false);
+    if (page.ok) return;
+    expect(page.reason).toMatch(/empty response body/);
   });
 
-  it("returns null when content-length exceeds 10 MB", async () => {
+  it("reports size cap when content-length exceeds 10 MB", async () => {
     const fetchImpl = (async () => {
       return new Response("<html>big</html>", {
         status: 200,
@@ -365,10 +397,12 @@ describe("fetchWebPage", () => {
       fetchImpl,
       1000,
     );
-    expect(page).toBeNull();
+    expect(page.ok).toBe(false);
+    if (page.ok) return;
+    expect(page.reason).toMatch(/10 MB size cap/);
   });
 
-  it("returns null on timeout", async () => {
+  it("reports timeout reason", async () => {
     const fetchImpl = (async (_input, init) => {
       return new Promise<Response>((_, reject) => {
         if (init?.signal?.aborted) {
@@ -381,6 +415,8 @@ describe("fetchWebPage", () => {
       });
     }) as typeof fetch;
     const page = await fetchWebPage("https://example.com/slow", fetchImpl, 100);
-    expect(page).toBeNull();
+    expect(page.ok).toBe(false);
+    if (page.ok) return;
+    expect(page.reason).toMatch(/timed out after 100ms/);
   });
 });
